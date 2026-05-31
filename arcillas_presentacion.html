@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Arcillas en Colombia</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:'Georgia',serif; background:#1a0f07; color:#f5e6d3; overflow:hidden; width:100vw; height:100vh; }
+canvas#pcvs { position:fixed; inset:0; width:100%; height:100%; pointer-events:none; z-index:0; }
+#stage { width:100%; height:100vh; position:relative; z-index:1; }
+.slide { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; opacity:0; pointer-events:none; transition:opacity 0.9s ease; padding:40px; }
+.slide.active { opacity:1; pointer-events:all; }
+
+#progress-bar { position:fixed; top:0; left:0; height:3px; background:#c0612b; transition:width 0.6s ease; z-index:100; }
+#nav { position:fixed; bottom:20px; left:50%; transform:translateX(-50%); display:flex; gap:10px; align-items:center; z-index:100; }
+#nav button { background:rgba(255,255,255,0.12); border:1px solid rgba(255,255,255,0.25); color:#fff; padding:8px 22px; border-radius:24px; cursor:pointer; font-size:13px; font-family:'Georgia',serif; transition:background 0.2s; }
+#nav button:hover { background:rgba(255,255,255,0.28); }
+#nav button:disabled { opacity:0.25; cursor:default; }
+#counter { color:rgba(255,255,255,0.45); font-size:12px; min-width:52px; text-align:center; }
+#dots { display:flex; gap:7px; }
+.dot { width:7px; height:7px; border-radius:50%; background:rgba(255,255,255,0.2); cursor:pointer; transition:background 0.3s; }
+.dot.on { background:#c0612b; }
+
+/* SLIDE 0 */
+#s0 { background:radial-gradient(ellipse at 40% 60%, #3d1f0a 0%, #1a0f07 70%); text-align:center; }
+.hero-label { font-size:11px; letter-spacing:6px; color:rgba(255,255,255,0.3); text-transform:uppercase; margin-bottom:20px; }
+.hero-title { font-size:clamp(56px,10vw,110px); color:#e8c9a8; letter-spacing:-3px; line-height:1; }
+.hero-sub { font-size:clamp(18px,3vw,28px); color:#b8845a; margin-top:14px; letter-spacing:4px; font-style:italic; }
+.play-hint { margin-top:52px; font-size:13px; color:rgba(255,255,255,0.35); animation:pulse 2s infinite; }
+@keyframes pulse { 0%,100%{opacity:0.35}50%{opacity:0.85} }
+
+/* SLIDE 1 — frase */
+#s1 { background:radial-gradient(ellipse at 30% 50%, #2d1b0e, #0d0804); text-align:center; }
+.big-q { font-size:clamp(20px,3.2vw,32px); color:#e8c9a8; max-width:720px; line-height:1.75; font-style:italic; }
+.big-q em { color:#c0612b; font-style:normal; }
+
+/* SLIDE 1b — timeline */
+#s1b { flex-direction:column; gap:0; }
+.stitle { font-size:clamp(20px,2.8vw,30px); color:#e8c9a8; margin-bottom:44px; text-align:center; }
+.stitle span { color:#c0612b; }
+.timeline { display:flex; width:100%; max-width:920px; position:relative; }
+.timeline::before { content:''; position:absolute; top:80px; left:0; right:0; height:2px; background:linear-gradient(90deg,#7b4f2e,#c0612b,#7b4f2e); }
+.ti { flex:1; display:flex; flex-direction:column; align-items:center; gap:12px; padding:0 6px; }
+.ti .era { font-size:10px; letter-spacing:2px; color:#b8845a; text-transform:uppercase; text-align:center; height:42px; display:flex; align-items:center; }
+.ti .ico { width:38px; height:38px; border-radius:50%; background:#7b4f2e; border:3px solid #c0612b; display:flex; align-items:center; justify-content:center; font-size:18px; z-index:2; }
+.ti .dd { font-size:11px; color:rgba(255,255,255,0.55); text-align:center; line-height:1.65; }
+
+/* SLIDE 2 */
+#s2 { }
+.twocol { display:grid; grid-template-columns:1fr 1fr; gap:48px; width:100%; max-width:900px; align-items:center; }
+.deftext { font-size:14px; color:rgba(255,255,255,0.72); line-height:1.95; }
+.deftext strong { color:#e8c9a8; }
+.pgrid { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+.pc { background:rgba(123,79,46,0.18); border:1px solid rgba(192,97,43,0.28); border-radius:12px; padding:16px; }
+.pc .pi { font-size:22px; margin-bottom:8px; }
+.pc .pl { font-size:10px; letter-spacing:2px; color:#b8845a; text-transform:uppercase; }
+.pc .pv { font-size:12px; color:rgba(255,255,255,0.65); margin-top:5px; line-height:1.5; }
+
+/* SLIDE 3 — tipos */
+#s3 { }
+.tgrid { display:grid; grid-template-columns:repeat(2,1fr); gap:20px; width:100%; max-width:900px; }
+.tc { border-radius:16px; padding:22px 24px; position:relative; overflow:hidden; }
+.tc.k { background:linear-gradient(135deg,#4a2e1a,#6b3f22); border:1px solid #7b4f2e; }
+.tc.b { background:linear-gradient(135deg,#1e2a1a,#2d4022); border:1px solid #3d5a2a; }
+.tc.c { background:linear-gradient(135deg,#1a2030,#253050); border:1px solid #354570; }
+.tc.r { background:linear-gradient(135deg,#301a10,#502810); border:1px solid #703020; }
+.tc .tlab { font-size:10px; letter-spacing:2px; opacity:0.55; text-transform:uppercase; margin-bottom:7px; }
+.tc .tnm { font-size:22px; color:#e8c9a8; margin-bottom:10px; }
+.tc .tds { font-size:12px; opacity:0.68; line-height:1.7; }
+.tc .tpr { position:absolute; top:18px; right:18px; font-size:17px; font-weight:bold; opacity:0.35; }
+
+/* SLIDE 4 — origen */
+#s4 { }
+.ogrid { display:grid; grid-template-columns:repeat(3,1fr); gap:22px; width:100%; max-width:900px; }
+.oc { background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); border-radius:16px; padding:24px; text-align:center; }
+.oc .on { font-size:46px; color:rgba(192,97,43,0.22); line-height:1; margin-bottom:8px; }
+.oc .ot { font-size:15px; color:#e8c9a8; margin-bottom:10px; }
+.oc .od { font-size:11px; color:rgba(255,255,255,0.52); line-height:1.75; }
+.seq { display:flex; align-items:center; gap:0; margin-top:36px; width:100%; max-width:900px; }
+.si { flex:1; background:rgba(192,97,43,0.14); border:1px solid rgba(192,97,43,0.28); border-radius:8px; padding:10px 4px; text-align:center; font-size:11px; color:#e8c9a8; line-height:1.4; }
+.sa { color:#c0612b; font-size:20px; padding:0 5px; }
+
+/* SLIDE 4b — tipos sedimentarios */
+#s4b { }
+.s2g { display:grid; grid-template-columns:repeat(2,1fr); gap:20px; width:100%; max-width:880px; }
+.s2c { background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.09); border-radius:16px; padding:24px; }
+.s2c .si2 { font-size:26px; margin-bottom:10px; }
+.s2c .st { font-size:14px; color:#e8c9a8; margin-bottom:8px; }
+.s2c .sd { font-size:12px; color:rgba(255,255,255,0.52); line-height:1.8; }
+
+/* SLIDE 5 — Colombia */
+#s5 { }
+.clayout { display:grid; grid-template-columns:1fr 1.15fr; gap:40px; width:100%; max-width:920px; align-items:center; }
+.clist { display:flex; flex-direction:column; gap:16px; }
+.ci { display:flex; gap:14px; align-items:flex-start; }
+.cdot { width:12px; height:12px; border-radius:50%; margin-top:5px; flex-shrink:0; }
+.cnm { font-size:14px; color:#e8c9a8; margin-bottom:4px; }
+.cds { font-size:11px; color:rgba(255,255,255,0.48); line-height:1.7; }
+.sbn { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-top:28px; }
+.sb { text-align:center; padding:14px; background:rgba(255,255,255,0.04); border-radius:12px; border:1px solid rgba(255,255,255,0.06); }
+.sb .sv { font-size:24px; color:#c0612b; font-weight:bold; }
+.sb .sl { font-size:10px; color:rgba(255,255,255,0.45); letter-spacing:1px; margin-top:4px; line-height:1.5; }
+
+/* SLIDE 6 — datos mundiales */
+#s6 { }
+.cw { width:100%; max-width:900px; }
+.brow { display:flex; align-items:center; gap:14px; margin-bottom:14px; }
+.blbl { width:110px; font-size:12px; color:rgba(255,255,255,0.58); text-align:right; flex-shrink:0; }
+.btrack { flex:1; height:28px; background:rgba(255,255,255,0.05); border-radius:4px; overflow:hidden; }
+.bfill { height:100%; border-radius:4px; display:flex; align-items:center; padding-left:10px; font-size:11px; font-weight:bold; color:rgba(0,0,0,0.55); width:0%; transition:width 1.4s ease; }
+.bval { font-size:11px; color:rgba(255,255,255,0.4); width:70px; }
+.prow { display:grid; grid-template-columns:repeat(3,1fr); gap:18px; margin-top:28px; }
+.prcc { background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.07); border-radius:14px; padding:18px; text-align:center; }
+.prcc .pn { font-size:10px; letter-spacing:2px; color:rgba(255,255,255,0.38); text-transform:uppercase; }
+.prcc .pv { font-size:30px; color:#c0612b; font-weight:bold; margin:5px 0; }
+.prcc .pu { font-size:10px; color:rgba(255,255,255,0.28); }
+
+/* SLIDE 7 — proceso */
+#s7 { }
+.pflow { display:flex; flex-direction:column; gap:12px; width:100%; max-width:920px; }
+.prow2 { display:flex; gap:0; align-items:stretch; }
+.pstep { flex:1; background:rgba(123,79,46,0.14); border:1px solid rgba(123,79,46,0.28); border-radius:8px; padding:12px 8px; text-align:center; }
+.pstep .psn { font-size:9px; letter-spacing:2px; color:#b8845a; text-transform:uppercase; margin-bottom:4px; }
+.pstep .psv { font-size:11px; color:rgba(255,255,255,0.72); line-height:1.4; }
+.parr { display:flex; align-items:center; font-size:15px; color:rgba(255,255,255,0.2); padding:0 3px; }
+.ptlbl { font-size:10px; letter-spacing:2px; color:#b8845a; text-transform:uppercase; margin-bottom:6px; display:flex; align-items:center; gap:8px; }
+.ptlbl::after { content:''; flex:1; height:1px; background:rgba(255,255,255,0.08); }
+.pmini { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-top:6px; }
+.pmc { background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.06); border-radius:10px; padding:12px; font-size:11px; color:rgba(255,255,255,0.48); text-align:center; line-height:1.6; }
+.pmc strong { color:#b8845a; display:block; margin-bottom:4px; }
+
+/* SLIDE 8 — ambiental */
+#s8 { }
+.ecards { display:grid; grid-template-columns:repeat(3,1fr); gap:20px; width:100%; max-width:880px; }
+.ecard { background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.07); border-radius:16px; padding:24px; }
+.ecard .ei { font-size:30px; margin-bottom:12px; }
+.ecard .et { font-size:14px; color:#e8c9a8; margin-bottom:8px; }
+.ecard .ed { font-size:11px; color:rgba(255,255,255,0.48); line-height:1.8; }
+
+/* SLIDE 9 — cierre */
+#s9 { background:radial-gradient(ellipse at 50% 80%, #2d1b0e, #0d0804); text-align:center; }
+.cbig { font-size:clamp(28px,5vw,54px); color:#e8c9a8; line-height:1.25; margin-bottom:16px; }
+.csub { font-size:13px; color:rgba(255,255,255,0.38); letter-spacing:2px; }
+.tags { display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin-top:24px; }
+.tag { background:rgba(192,97,43,0.14); border:1px solid rgba(192,97,43,0.28); border-radius:20px; padding:6px 16px; font-size:12px; color:#b8845a; }
+.cfin { font-size:11px; color:rgba(255,255,255,0.2); margin-top:28px; letter-spacing:1px; }
+</style>
+</head>
+<body>
+
+<canvas id="pcvs"></canvas>
+<div id="progress-bar"></div>
+
+<div id="stage">
+
+  <!-- S0 PORTADA -->
+  <div class="slide active" id="s0">
+    <p class="hero-label">Servicio Geológico Colombiano · Vol. 1 · 2019</p>
+    <h1 class="hero-title">Arcillas</h1>
+    <p class="hero-sub">en Colombia</p>
+    <p class="play-hint">▶ Presiona → o el botón Siguiente para comenzar</p>
+  </div>
+
+  <!-- S1 FRASE -->
+  <div class="slide" id="s1">
+    <p class="big-q">
+      Hace <em>25.000 años</em>, mucho antes de la escritura,<br>
+      antes del metal, antes del vidrio…<br><br>
+      el ser humano ya tomaba <em>barro entre sus manos</em><br>
+      y con él creaba el mundo.
+    </p>
+  </div>
+
+  <!-- S1b TIMELINE -->
+  <div class="slide" id="s1b">
+    <h2 class="stitle">La arcilla: <span>primera tecnología humana</span></h2>
+    <div class="timeline">
+      <div class="ti"><div class="era">25.000 a.C.</div><div class="ico">🏺</div><div class="dd">Figuras de arcilla cocida en Moravia — primer uso registrado</div></div>
+      <div class="ti"><div class="era">10.000 a.C.</div><div class="ico">🍶</div><div class="dd">Primeras vasijas para alimentos y líquidos</div></div>
+      <div class="ti"><div class="era">3.500 a.C.</div><div class="ico">📜</div><div class="dd">Tablillas en Mesopotamia — soporte de escritura</div></div>
+      <div class="ti"><div class="era">2.600 a.C.</div><div class="ico">🏛️</div><div class="dd">Ladrillos cocidos en Ur y las pirámides egipcias</div></div>
+      <div class="ti"><div class="era">Hoy</div><div class="ico">🔬</div><div class="dd">Papel, cerámica, fármacos, plásticos, cables, nanomateriales</div></div>
+    </div>
+  </div>
+
+  <!-- S2 QUÉ SON -->
+  <div class="slide" id="s2">
+    <div class="twocol">
+      <div>
+        <h2 class="stitle" style="text-align:left;margin-bottom:22px;">¿Qué son<br><span>las arcillas?</span></h2>
+        <p class="deftext">
+          Materiales terrosos de <strong>grano muy fino</strong> (&lt; 2 µm), plásticos y cohesivos. Petrológicamente son <strong>rocas sedimentarias</strong> producto de meteorización o procesos hidrotermales.<br><br>
+          Representan el <strong>67%</strong> del volumen de la litósfera y el <strong>70%</strong> del material sedimentario del planeta.<br><br>
+          Su estructura laminar —filosilicatos hidratados— les da propiedades únicas: plasticidad, hinchamiento, intercambio catiónico.
+        </p>
+      </div>
+      <div class="pgrid">
+        <div class="pc"><div class="pi">💧</div><div class="pl">Plasticidad</div><div class="pv">Alta al mezclarse con agua; rígida en seco</div></div>
+        <div class="pc"><div class="pi">🔥</div><div class="pl">Cocción</div><div class="pv">Dureza &gt; 1000 °C. Fusión hasta 1785 °C</div></div>
+        <div class="pc"><div class="pi">⚗️</div><div class="pl">Intercambio</div><div class="pv">Catiónico: 3–200 meq/100 g según tipo</div></div>
+        <div class="pc"><div class="pi">📐</div><div class="pl">Tamaño</div><div class="pv">Partículas &lt; 2 µm. Área hasta 300 m²/g</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- S3 TIPOS -->
+  <div class="slide" id="s3">
+    <h2 class="stitle" style="margin-bottom:28px;">Los grandes <span>tipos de arcillas</span></h2>
+    <div class="tgrid">
+      <div class="tc k"><div class="tlab">Arcilla especial · §1.1</div><div class="tnm">Caolín</div><div class="tpr">$130/t</div><div class="tds">Arcilla blanca pura, silicato de aluminio hidratado. Fusión a 1785 °C. Usos: papel, cerámica fina, porcelana, farmacéutica, cables eléctricos.</div></div>
+      <div class="tc b"><div class="tlab">Arcilla especial · §1.2</div><div class="tnm">Bentonita</div><div class="tpr">$74/t</div><div class="tds">Base esmectita–montmorillonita. Tres tipos: sódica (hinchable), cálcica y mixta. Perforación, fundición, cosméticos, descontaminación.</div></div>
+      <div class="tc c"><div class="tlab">Arcilla común</div><div class="tnm">Arcillas Cerámicas</div><div class="tpr">$12/t</div><div class="tds">Illita + esmectita. La más abundante del mundo. Ladrillos, tejas, gres, cerámica roja, tubería. Principal producción nacional.</div></div>
+      <div class="tc r"><div class="tlab">Arcilla especial</div><div class="tnm">Refractarias</div><div class="tpr">$22/t</div><div class="tds">Caolinita pura de alta alúmina. Soporta más de 1500 °C. Hornos industriales, crisoles, ladrillos refractarios, fundición.</div></div>
+    </div>
+  </div>
+
+  <!-- S4 ORIGEN -->
+  <div class="slide" id="s4">
+    <h2 class="stitle" style="margin-bottom:32px;">Cómo nacen: <span>el origen geológico</span></h2>
+    <div class="ogrid">
+      <div class="oc"><div class="on">①</div><div class="ot">Herencia</div><div class="od">Se forman directamente de una roca madre. Predominan en mares y lagos. Propias de climas fríos y árticos.</div></div>
+      <div class="oc"><div class="on">②</div><div class="ot">Neoformación</div><div class="od">Reacción química de nuevos componentes desde solución. Domina en trópicos húmedos. Origen típico de la caolinita en suelos.</div></div>
+      <div class="oc"><div class="on">③</div><div class="ot">Transformación</div><div class="od">Conversión de otros minerales arcillosos. Requiere condiciones hidrotermales y mayor energía.</div></div>
+    </div>
+    <div class="seq">
+      <div class="si">Feldespato<br>potásico</div><div class="sa">→</div>
+      <div class="si">Alofana</div><div class="sa">→</div>
+      <div class="si">Haloisita</div><div class="sa">→</div>
+      <div class="si">Caolinita</div>
+    </div>
+    <p style="font-size:10px;color:rgba(255,255,255,0.28);margin-top:12px;letter-spacing:1px;">Secuencia de caolinización — Grim (1962)</p>
+  </div>
+
+  <!-- S4b TIPOS SEDIMENTARIOS -->
+  <div class="slide" id="s4b">
+    <h2 class="stitle" style="margin-bottom:28px;">Tipos según su <span>ambiente de depósito · §2.1.2</span></h2>
+    <div class="s2g">
+      <div class="s2c"><div class="si2">🏞️</div><div class="st">§2.1.2.1 · Fluviales</div><div class="sd">Asociadas a llanuras de inundación. Depósitos lenticulares con estratificación cruzada y grietas de desecación.</div></div>
+      <div class="s2c"><div class="si2">🌿</div><div class="st">§2.1.2.2 · Paludales (pantano)</div><div class="sd">Restos orgánicos vegetales, estructuras de raíces. Muy plásticas y limpias. Equivalentes a under-clay.</div></div>
+      <div class="s2c"><div class="si2">🪨</div><div class="st">§2.1.2.3 · Aluviales</div><div class="sd">Fangos con cantos y arenas mal clasificados. Depósitos en cuñas y canales. Frecuentes señales de oxidación.</div></div>
+      <div class="s2c"><div class="si2">⛰️</div><div class="st">§2.1.2.4 · Coluviales</div><div class="sd">Lavado de depósitos preexistentes acumulados en zonas de pendiente. Muy comunes en la Colombia andina.</div></div>
+    </div>
+  </div>
+
+  <!-- S5 COLOMBIA -->
+  <div class="slide" id="s5">
+    <h2 class="stitle" style="margin-bottom:28px;">Colombia: <span>una riqueza arcillosa extraordinaria</span></h2>
+    <div class="clayout">
+      <div>
+        <div class="clist">
+          <div class="ci"><div class="cdot" style="background:#7b4f2e;"></div><div><div class="cnm">Cordillera Oriental</div><div class="cds">+60% sedimentitas. Formaciones Guaduas, Bogotá, Chipaque, Guadalupe. Mayor producción del país: Sabana de Bogotá.</div></div></div>
+          <div class="ci"><div class="cdot" style="background:#c0612b;"></div><div><div class="cnm">Cordillera Central</div><div class="cds">Batolito Antioqueño: mayor depósito de caolín. Formación Amagá. Arcillas esmectíticas en Valle y Tolima.</div></div></div>
+          <div class="ci"><div class="cdot" style="background:#b8845a;"></div><div><div class="cnm">Cordillera Occidental</div><div class="cds">Basaltos meteorizados → arcillas rojas residuales. Formaciones Guachinte, Ferreira. Caolinitas en Nariño.</div></div></div>
+        </div>
+        <div class="sbn">
+          <div class="sb"><div class="sv">111</div><div class="sl">títulos mineros activos</div></div>
+          <div class="sb"><div class="sv">8.454</div><div class="sl">hectáreas bajo título</div></div>
+          <div class="sb"><div class="sv">~4 M/t</div><div class="sl">producción anual</div></div>
+        </div>
+      </div>
+      <div>
+        <svg viewBox="0 0 220 380" width="100%" style="max-height:320px;opacity:0.88;">
+          <path d="M80,20 L120,18 L145,35 L155,55 L160,80 L155,100 L165,120 L170,145 L160,170 L155,190 L165,210 L170,230 L160,250 L145,270 L130,285 L115,300 L100,315 L85,330 L75,340 L65,330 L55,310 L50,285 L55,260 L60,240 L50,220 L45,200 L55,180 L60,160 L50,140 L45,120 L55,100 L60,80 L55,60 L65,40 Z" fill="#3d1f0a" stroke="#7b4f2e" stroke-width="1.5"/>
+          <path d="M90,60 L95,120 L100,180 L98,240 L95,300" stroke="#7b4f2e" stroke-width="3.5" stroke-linecap="round" fill="none" opacity="0.8"/>
+          <path d="M105,55 L110,115 L112,175 L110,235 L108,295" stroke="#c0612b" stroke-width="3.5" stroke-linecap="round" fill="none" opacity="0.8"/>
+          <path d="M118,58 L122,118 L125,178 L122,238" stroke="#b8845a" stroke-width="3.5" stroke-linecap="round" fill="none" opacity="0.8"/>
+          <circle cx="95" cy="155" r="5" fill="#c0612b"/><text x="100" y="159" font-size="8" fill="#e8c9a8" font-family="Georgia">Bogotá</text>
+          <circle cx="108" cy="188" r="4" fill="#b8845a"/><text x="113" y="192" font-size="8" fill="#e8c9a8" font-family="Georgia">Medellín</text>
+          <circle cx="112" cy="215" r="3.5" fill="#7b4f2e"/><text x="117" y="219" font-size="8" fill="#e8c9a8" font-family="Georgia">Cali</text>
+          <text x="78" y="100" font-size="7" fill="#7b4f2e" font-family="Georgia" transform="rotate(-70,78,100)">C. Oriental</text>
+          <text x="100" y="95" font-size="7" fill="#c0612b" font-family="Georgia" transform="rotate(-70,100,95)">C. Central</text>
+          <text x="120" y="95" font-size="7" fill="#b8845a" font-family="Georgia" transform="rotate(-70,120,95)">C. Occidental</text>
+        </svg>
+      </div>
+    </div>
+  </div>
+
+  <!-- S6 DATOS MUNDIALES -->
+  <div class="slide" id="s6">
+    <h2 class="stitle" style="margin-bottom:28px;">El mercado mundial <span>de arcillas · §2.5</span></h2>
+    <div class="cw">
+      <p style="font-size:10px;color:rgba(255,255,255,0.38);letter-spacing:2px;text-transform:uppercase;margin-bottom:16px;">Producción mundial de caolín 2015 — miles de toneladas</p>
+      <div class="brow"><div class="blbl">EE.UU.</div><div class="btrack"><div class="bfill" style="background:#c0612b;" data-w="95">6.160</div></div><div class="bval">24.3%</div></div>
+      <div class="brow"><div class="blbl">China</div><div class="btrack"><div class="bfill" style="background:#b8845a;" data-w="51">3.300</div></div><div class="bval">13.0%</div></div>
+      <div class="brow"><div class="blbl">Turquía</div><div class="btrack"><div class="bfill" style="background:#7b4f2e;" data-w="31">2.032</div></div><div class="bval">8.0%</div></div>
+      <div class="brow"><div class="blbl">Ucrania</div><div class="btrack"><div class="bfill" style="background:#7b4f2e;" data-w="28">1.815</div></div><div class="bval">7.2%</div></div>
+      <div class="brow"><div class="blbl">Brasil</div><div class="btrack"><div class="bfill" style="background:#7b4f2e;" data-w="26">1.700</div></div><div class="bval">6.7%</div></div>
+      <div class="brow"><div class="blbl">Alemania</div><div class="btrack"><div class="bfill" style="background:#6b3f22;" data-w="17">1.100</div></div><div class="bval">4.3%</div></div>
+      <div class="prow">
+        <div class="prcc"><div class="pn">Arcilla común</div><div class="pv">$12.5</div><div class="pu">USD / tonelada</div></div>
+        <div class="prcc"><div class="pn">Caolín</div><div class="pv">$130</div><div class="pu">USD / tonelada</div></div>
+        <div class="prcc"><div class="pn">Bentonita</div><div class="pv">$74</div><div class="pu">USD / tonelada</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- S7 PROCESO -->
+  <div class="slide" id="s7">
+    <h2 class="stitle" style="margin-bottom:22px;">De la mina <span>al producto final · §2.4</span></h2>
+    <div class="pflow">
+      <div class="ptlbl">Caolín — proceso completo</div>
+      <div class="prow2">
+        <div class="pstep"><div class="psn">1</div><div class="psv">Extracción cielo abierto</div></div><div class="parr">→</div>
+        <div class="pstep"><div class="psn">2</div><div class="psv">Trituración</div></div><div class="parr">→</div>
+        <div class="pstep"><div class="psn">3</div><div class="psv">Agitación + dispersantes</div></div><div class="parr">→</div>
+        <div class="pstep"><div class="psn">4</div><div class="psv">Decantación</div></div>
+      </div>
+      <div class="prow2">
+        <div class="pstep"><div class="psn">5</div><div class="psv">Fraccionamiento con agua</div></div><div class="parr">→</div>
+        <div class="pstep"><div class="psn">6</div><div class="psv">Separación magnética</div></div><div class="parr">→</div>
+        <div class="pstep"><div class="psn">7</div><div class="psv">Ultraflotación</div></div><div class="parr">→</div>
+        <div class="pstep"><div class="psn">8</div><div class="psv">Tratamiento ácido</div></div>
+      </div>
+      <div class="prow2">
+        <div class="pstep"><div class="psn">9</div><div class="psv">Calcinación</div></div><div class="parr">→</div>
+        <div class="pstep"><div class="psn">10</div><div class="psv">Flotación en aire</div></div><div class="parr">→</div>
+        <div class="pstep"><div class="psn">11</div><div class="psv">Molienda</div></div><div class="parr">→</div>
+        <div class="pstep" style="background:rgba(192,97,43,0.28);border-color:#c0612b;"><div class="psn">✓</div><div class="psv" style="color:#e8c9a8;">Delaminación final</div></div>
+      </div>
+      <div class="pmini">
+        <div class="pmc"><strong>Bentonita</strong>Meteorización → secado → molienda → granulación → aditivos catión</div>
+        <div class="pmc"><strong>Arcilla plástica</strong>Secado → desmenuzamiento → pulverización → flotación → tamizado</div>
+        <div class="pmc"><strong>Refractaria</strong>Trituración → calcinación → producción de pastas especiales</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- S8 AMBIENTAL -->
+  <div class="slide" id="s8">
+    <h2 class="stitle" style="margin-bottom:28px;">§4 · Aspectos <span>ambientales</span></h2>
+    <div class="ecards">
+      <div class="ecard"><div class="ei">🌱</div><div class="et">Restauración paisajística</div><div class="ed">Las empresas deben restituir la forma del terreno y reponer fuentes de agua tras la explotación. Política preventiva y paliativa obligatoria.</div></div>
+      <div class="ecard"><div class="ei">💧</div><div class="et">Descontaminación de aguas</div><div class="ed">Sepiolita y bentonita magnésica reducen metales pesados en aguas residuales con eficacia del 69–80%. Tiempo de contacto: 3 horas.</div></div>
+      <div class="ecard"><div class="ei">⚖️</div><div class="et">Marco legal</div><div class="ed">Regulada por MinMinas, MinAmbiente y MinVivienda. Indicadores Ingeominas de estabilidad del terreno y vulnerabilidad a erosión.</div></div>
+    </div>
+  </div>
+
+  <!-- S9 CIERRE -->
+  <div class="slide" id="s9">
+    <p class="cbig">Del barro ancestral<br>al recurso estratégico</p>
+    <p class="csub">Recursos Minerales de Colombia · Vol. 1 · SGC · 2019</p>
+    <div class="tags">
+      <span class="tag">111 títulos mineros</span>
+      <span class="tag">8.454 ha bajo título</span>
+      <span class="tag">~4M t / año</span>
+      <span class="tag">Demanda &gt; Oferta nacional</span>
+      <span class="tag">Caolín · Bentonita · Cerámicas</span>
+    </div>
+    <p class="cfin">Orlando Pulido González · Servicio Geológico Colombiano</p>
+  </div>
+
+</div>
+
+<!-- NAVEGACIÓN -->
+<div id="nav">
+  <button id="pb" onclick="go(-1)" disabled>← Anterior</button>
+  <div id="dots"></div>
+  <span id="counter">1 / 10</span>
+  <button id="nb" onclick="go(1)">Siguiente →</button>
+</div>
+
+<script>
+const ORDER = ['s0','s1','s1b','s2','s3','s4','s4b','s5','s6','s7','s8','s9'];
+let cur = 0;
+
+const dotsEl = document.getElementById('dots');
+ORDER.forEach(function(_,i){
+  var d = document.createElement('div');
+  d.className = 'dot' + (i===0?' on':'');
+  d.onclick = function(){ goTo(i); };
+  dotsEl.appendChild(d);
+});
+
+function goTo(n) {
+  document.getElementById(ORDER[cur]).classList.remove('active');
+  cur = Math.max(0, Math.min(n, ORDER.length-1));
+  document.getElementById(ORDER[cur]).classList.add('active');
+  document.getElementById('pb').disabled = cur===0;
+  document.getElementById('nb').disabled = cur===ORDER.length-1;
+  document.getElementById('counter').textContent = (cur+1)+' / '+ORDER.length;
+  document.getElementById('progress-bar').style.width = ((cur/(ORDER.length-1))*100)+'%';
+  document.querySelectorAll('.dot').forEach(function(d,i){ d.classList.toggle('on',i===cur); });
+  if(ORDER[cur]==='s6'){ setTimeout(animBars, 200); }
+}
+
+function go(d){ goTo(cur+d); }
+
+function animBars(){
+  document.querySelectorAll('.bfill').forEach(function(b){
+    b.style.width = b.dataset.w+'%';
+  });
+}
+
+document.addEventListener('keydown', function(e){
+  if(e.key==='ArrowRight'||e.key==='ArrowDown') go(1);
+  if(e.key==='ArrowLeft'||e.key==='ArrowUp') go(-1);
+});
+
+// Partículas de fondo
+(function(){
+  var cv = document.getElementById('pcvs');
+  var ctx = cv.getContext('2d');
+  var W, H, pts=[];
+  function resize(){ W=cv.width=window.innerWidth; H=cv.height=window.innerHeight; }
+  resize();
+  window.addEventListener('resize', resize);
+  for(var i=0;i<55;i++){
+    pts.push({x:Math.random()*1920, y:Math.random()*1080,
+      vx:(Math.random()-.5)*.28, vy:(Math.random()-.5)*.28,
+      r:Math.random()*1.4+0.4});
+  }
+  function draw(){
+    ctx.clearRect(0,0,W,H);
+    pts.forEach(function(p){
+      p.x+=p.vx; p.y+=p.vy;
+      if(p.x<0)p.x=W; if(p.x>W)p.x=0;
+      if(p.y<0)p.y=H; if(p.y>H)p.y=0;
+      ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+      ctx.fillStyle='rgba(192,97,43,0.22)'; ctx.fill();
+    });
+    requestAnimationFrame(draw);
+  }
+  draw();
+})();
+</script>
+</body>
+</html>
